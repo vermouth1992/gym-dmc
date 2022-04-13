@@ -118,7 +118,7 @@ class DMCEnv(gym.Env):
             if self.non_newtonian:  # zero velocity if non newtonian
                 self.env.physics.data.qvel[:] = 0
             reward += ts.reward or 0
-            done = ts.last()
+            done = ts.last() and ts.discount == 0.0
             if done:
                 break
 
