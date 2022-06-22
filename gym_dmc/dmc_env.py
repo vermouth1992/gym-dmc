@@ -3,6 +3,8 @@ import numpy as np
 from dm_control import suite
 from dm_env import specs
 from gym import spaces
+from typing import Optional, Union, Tuple
+from gym.core import ObsType
 
 
 def convert_dm_control_to_gym_space(dm_control_space, dtype=None, **kwargs):
@@ -29,15 +31,15 @@ def convert_dm_control_to_gym_space(dm_control_space, dtype=None, **kwargs):
 
 
 class DMCEnv(gym.Env):
-    @property
-    def spec(self):
-        return self._spec
-
-    @spec.setter
-    def spec(self, spec):
-        # fuck new gym.
-        spec.max_episode_steps = self._spec.max_episode_steps
-        self._spec = spec
+    # @property
+    # def spec(self):
+    #     return self._spec
+    #
+    # @spec.setter
+    # def spec(self, spec):
+    #     # fuck new gym.
+    #     spec.max_episode_steps = self._spec.max_episode_steps
+    #     self._spec = spec
 
     def __init__(self, domain_name, task_name,
                  task_kwargs=None,
@@ -137,7 +139,14 @@ class DMCEnv(gym.Env):
         img = self.render("gray" if self.gray_scale else "rgb", **self.render_kwargs)
         return img.transpose([2, 0, 1]) if self.channels_first else img
 
-    def reset(self):
+    def reset(
+            self,
+            *,
+            seed: Optional[int] = None,
+            return_info: bool = False,
+            options: Optional[dict] = None,
+    ) -> Union[ObsType, Tuple[ObsType, dict]]:
+        self.seed(seed)
         obs = self.env.reset().observation
         for i in range(self.skip_start or 0):
             obs = self.env.step([0]).observation
