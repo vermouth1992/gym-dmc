@@ -114,15 +114,28 @@ class DMCEnv(gym.Env):
 
     def step(self, action):
         reward = 0
+        terminate = False
+        truncate = False
+        ts = None
 
         for i in range(self.frame_skip):
             ts = self.env.step(action)
             if self.non_newtonian:  # zero velocity if non newtonian
                 self.env.physics.data.qvel[:] = 0
             reward += ts.reward or 0
-            done = ts.last() and ts.discount == 0.0
-            if done:
+            if ts.last():
+                if ts.discount == 0.0:
+                    terminate = True
+                    truncate = False
+                else:
+                    terminate = False
+                    truncate = True
+
                 break
+            #
+            # done = ts.last() and ts.discount == 0.0
+            # if done:
+            #     break
 
         sim_state = self.env.physics.get_state().copy()
 
@@ -130,7 +143,7 @@ class DMCEnv(gym.Env):
         if self.from_pixels:
             obs['pixels'] = self._get_obs_pixels()
 
-        return obs, reward, done, dict(sim_state=sim_state)
+        return obs, reward, terminate, truncate, dict(sim_state=sim_state)
 
     def _get_obs(self):
         return self.env.task.get_observation(self.env.physics)
@@ -154,7 +167,9 @@ class DMCEnv(gym.Env):
         if self.from_pixels:
             obs['pixels'] = self._get_obs_pixels()
 
-        return obs
+        sim_state = self.env.physics.get_state().copy()
+
+        return obs, dict(sim_state=sim_state)
 
     def render(self, mode='human', height=None, width=None, camera_id=0, **kwargs):
         img = self.env.physics.render(
